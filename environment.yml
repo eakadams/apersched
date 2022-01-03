@@ -1,0 +1,15 @@
+name: apersched2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.6
+  - numpy>=1.16.0
+  - matplotlib>=3.0.2
+  - jupyterlab
+  - astropy>=3.2.3
+  - requests>=2.21.0
+  - kapteyn
+  - pandas
+
+
