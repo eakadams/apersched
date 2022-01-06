@@ -1,4 +1,4 @@
-name: apersched2
+name: apersched
 channels:
   - conda-forge
   - defaults
