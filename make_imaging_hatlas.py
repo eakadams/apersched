@@ -15,27 +15,119 @@ from astropy.table import Table
 from astropy.time import Time
 from astropy import units as u
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 import numpy as np
 
-import atdbquery
+#import atdbquery
 from modules.calc_slewtime import calc_slewtime  # Wants [ra,dec] start/end positions in radians; outputs seconds.
 from modules.calibrators import *
 from modules.functions import *
 from modules.telescope_params import westerbork
 
 
-flux_names = ['3C147']
-flux_cal = [SkyCoord.from_name(name) for name in flux_names]
-pol_names = ['3C138']
-pol_cal = [SkyCoord.from_name(name) for name in pol_names]
+# flux_names = ['3C147']
+# flux_cal = [SkyCoord.from_name(name) for name in flux_names]
+# pol_names = ['3C138']
+# pol_cal = [SkyCoord.from_name(name) for name in pol_names]
 
 ###################################################################
 # Survey specific functions for doing observations and calibration
 
+# def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, next_cal, mins_per_beam):
+# 
+#     calib_sun_dist = 0.
+# 
+#     current_lst = Time(obstime_utc).sidereal_time('apparent', westerbork().lon)
+#     # Consider HA limits for shadowing:
+#     #     https://old.astron.nl/radio-observatory/astronomers/wsrt-guide-observations/3-telescope-parameters-and-array-configuration
+#     # Note ha_limit[1:2] depend on length of calibration!
+#     syswait = 2.0  # minutes
+#     obstime = (mins_per_beam + syswait) * 40. - syswait  # minutes
+#     sun_position = get_sun(Time(obstime_utc, scale='utc'))
+#     if (i == 4):
+#         next_cal = 'flux'
+#         print(next_cal)
+#     if next_cal == 'flux':
+#         calibrators = flux_cal
+#         names = flux_names
+#         type_cal = 'Flux'
+#         ha_limit = [-5.0, 5.0 - obstime / 60., 0.4]  # Entry 2 is hardcoded for 5 min per beam
+#     if next_cal == 'pol':
+#         calibrators = pol_cal
+#         names = pol_names
+#         type_cal = 'Polarization'
+#         ha_limit = [-3.2, 3.3 - obstime / 60., - 1.0]  # Entry 2 is hardcoded for 5 min per beam
+#     is_cal_up = np.array([(current_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[0].ra.hour < ha_limit[1])])#,
+#                  # (current_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[1].ra.hour < ha_limit[2])])
+#     is_sundist_okay = np.array([sun_position.separation(calibrators[0]).value > calib_sun_dist])#,
+#                                 # sun_position.separation(calibrators[1]).value > calib_sun_dist])
+#     calib_wait = 0
+#     new_obstime_utc = obstime_utc
+#     print(names)
+# 
+#     # Wait for calibrator to be at least an hour above the observing horizon, or not shadowed.
+#     while not np.any(is_cal_up * is_sundist_okay):  # and (calib_wait < 6. * 60.): # and (not is3c286):
+#         calib_wait += dowait
+#         new_obstime_utc = wait_for_rise(new_obstime_utc, waittime=dowait)
+#         new_lst = Time(new_obstime_utc).sidereal_time('apparent', westerbork().lon)
+#         is_cal_up = [(new_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[0].ra.hour < ha_limit[1])]#,
+#                      # (new_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[1].ra.hour < ha_limit[2])]
+#     n = np.where(is_cal_up)[0][0]
+#     ##### EDITABLE: Can change the number of hours the program will wait for a calibrator #####
+#     if calib_wait != 0 and calib_wait < 4.0 * 60:
+#         total_wait += calib_wait
+#         n = np.where(is_cal_up)[0][0]
+#         print("\tCalibrator not up, waiting {} minutes until LST: {}.".format(calib_wait, str(new_lst)))
+#     # The commented part is hopefully obsolete with the new calibrator.py and observing strategy, but there's still a bad starting point in the sky
+#     # elif calib_wait >= 4.0 * 60:
+#     elif calib_wait >= 10.0 * 60:
+#         after_cal = obstime_utc - datetime.timedelta(minutes=syswait)
+#         new_telescope_position = telescope_position
+#         i -= 1
+#         # If can't do any pol at beginning, first must be a flux cal
+#         # (if statement untested; trying to fix skipping pol cal when this happens in the middle!):
+#         if i == 1:
+#             next_cal = 'flux'
+#         print("Must wait {} hours for calibrator to rise.  Instead, go directly to target.".format(calib_wait/60.))
+#         print("\tIf this appears anywhere other than beginning of scheduling block, probably need to expanding "
+#               "options in pointing file.")
+#         # break
+#         return i, after_cal, new_telescope_position, total_wait, next_cal
+# 
+#     slew_seconds = calc_slewtime([telescope_position.ra.radian, telescope_position.dec.radian],
+#                                      [calibrators[n].ra.radian, calibrators[n].dec.radian])
+#     if slew_seconds < calib_wait * 60.:
+#         new_obstime_utc = obstime_utc + datetime.timedelta(minutes=calib_wait)
+#     else:
+#         new_obstime_utc = obstime_utc + datetime.timedelta(seconds=slew_seconds)
+# 
+#     # Calculate appropriate observe time for the calibrator and observe it.
+#     obstime = (mins_per_beam + syswait) * 40. - syswait    # <mins_per_beam> minutes per beam, 2 min wait
+#     if n == 1:
+#         obstime = (5.0 + syswait) * 40. - syswait  # force 5 minutes per beam, 2 min wait on calibs with natural gap before target
+#     after_cal = observe_calibrator(new_obstime_utc, obstime=obstime)
+#     if i == 1:
+#         write_to_csv(csvfile, 'imaging_start', calibrators[n], new_obstime_utc - datetime.timedelta(minutes=3.0),
+#                      new_obstime_utc - datetime.timedelta(minutes=2.0))
+#     write_to_csv(csvfile, names[n], calibrators[n], new_obstime_utc, after_cal)
+# 
+#     print("Scan {} observed {} calibrator {}.".format(i, type_cal, names[n]))
+#     check_sun = sun_position.separation(calibrators[n])
+#     if check_sun.value < 30.0: #calib_sun_dist:
+#         print("\tWARNING: {} is THIS close to Sun: {:5.2f}".format(names[n], check_sun))
+#     new_telescope_position = calibrators[n]
+# 
+#     # Set up for next calibrator
+#     if next_cal == 'flux':
+#         next_cal = 'pol'
+#     else:
+#         next_cal = 'flux'
+# 
+#     return i, after_cal, new_telescope_position, total_wait, next_cal
+
 def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, next_cal, mins_per_beam):
 
-    calib_sun_dist = 0.
+    calib_sun_dist = 30.
 
     current_lst = Time(obstime_utc).sidereal_time('apparent', westerbork().lon)
     # Consider HA limits for shadowing:
@@ -44,9 +136,6 @@ def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, 
     syswait = 2.0  # minutes
     obstime = (mins_per_beam + syswait) * 40. - syswait  # minutes
     sun_position = get_sun(Time(obstime_utc, scale='utc'))
-    if (i == 4):
-        next_cal = 'flux'
-        print(next_cal)
     if next_cal == 'flux':
         calibrators = flux_cal
         names = flux_names
@@ -56,31 +145,31 @@ def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, 
         calibrators = pol_cal
         names = pol_names
         type_cal = 'Polarization'
-        ha_limit = [-3.2, 3.3 - obstime / 60., - 1.0]  # Entry 2 is hardcoded for 5 min per beam
-    is_cal_up = np.array([(current_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[0].ra.hour < ha_limit[1])])#,
-                 # (current_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[1].ra.hour < ha_limit[2])])
-    is_sundist_okay = np.array([sun_position.separation(calibrators[0]).value > calib_sun_dist])#,
-                                # sun_position.separation(calibrators[1]).value > calib_sun_dist])
+        ha_limit = [-3.3, 3.3 - obstime / 60., - 1.0]  # Entry 2 is hardcoded for 5 min per beam
+    is_cal_up = np.array([(current_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[0].ra.hour < ha_limit[1]),
+                 (current_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (current_lst.hour - calibrators[1].ra.hour < ha_limit[2])])
+    is_sundist_okay = np.array([sun_position.separation(calibrators[0]).value > calib_sun_dist,
+                                sun_position.separation(calibrators[1]).value > calib_sun_dist])
     calib_wait = 0
     new_obstime_utc = obstime_utc
-    print(names)
 
     # Wait for calibrator to be at least an hour above the observing horizon, or not shadowed.
     while not np.any(is_cal_up * is_sundist_okay):  # and (calib_wait < 6. * 60.): # and (not is3c286):
         calib_wait += dowait
         new_obstime_utc = wait_for_rise(new_obstime_utc, waittime=dowait)
         new_lst = Time(new_obstime_utc).sidereal_time('apparent', westerbork().lon)
-        is_cal_up = [(new_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[0].ra.hour < ha_limit[1])]#,
-                     # (new_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[1].ra.hour < ha_limit[2])]
-    n = np.where(is_cal_up)[0][0]
+        is_cal_up = [(new_lst.hour - calibrators[0].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[0].ra.hour < ha_limit[1]),
+                     (new_lst.hour - calibrators[1].ra.hour > ha_limit[0]) and (new_lst.hour - calibrators[1].ra.hour < ha_limit[2])]
+    n = np.where(is_cal_up * is_sundist_okay)[0][0]
     ##### EDITABLE: Can change the number of hours the program will wait for a calibrator #####
-    if calib_wait != 0 and calib_wait < 4.0 * 60:
+    # if calib_wait != 0 and calib_wait < 4.0 * 60:
+    if calib_wait != 0 and calib_wait < 9.0 * 60:
         total_wait += calib_wait
-        n = np.where(is_cal_up)[0][0]
+        # n = np.where(is_cal_up * is_sundist_okay)[0][0]
         print("\tCalibrator not up, waiting {} minutes until LST: {}.".format(calib_wait, str(new_lst)))
     # The commented part is hopefully obsolete with the new calibrator.py and observing strategy, but there's still a bad starting point in the sky
     # elif calib_wait >= 4.0 * 60:
-    elif calib_wait >= 8.0 * 60:
+    elif calib_wait >= 9.0 * 60:
         after_cal = obstime_utc - datetime.timedelta(minutes=syswait)
         new_telescope_position = telescope_position
         i -= 1
@@ -103,8 +192,8 @@ def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, 
 
     # Calculate appropriate observe time for the calibrator and observe it.
     obstime = (mins_per_beam + syswait) * 40. - syswait    # <mins_per_beam> minutes per beam, 2 min wait
-    if n == 1:
-        obstime = (5.0 + syswait) * 40. - syswait  # force 5 minutes per beam, 2 min wait on calibs with natural gap before target
+    # if (n == 1) & (next_cal == 'pol'):
+    #     obstime = (5.0 + syswait) * 40. - syswait  # force 5 minutes per beam, 2 min wait on calibs with natural gap before target
     after_cal = observe_calibrator(new_obstime_utc, obstime=obstime)
     if i == 1:
         write_to_csv(csvfile, 'imaging_start', calibrators[n], new_obstime_utc - datetime.timedelta(minutes=3.0),
@@ -113,7 +202,7 @@ def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, 
 
     print("Scan {} observed {} calibrator {}.".format(i, type_cal, names[n]))
     check_sun = sun_position.separation(calibrators[n])
-    if check_sun.value < 30.0: #calib_sun_dist:
+    if check_sun.value < calib_sun_dist:
         print("\tWARNING: {} is THIS close to Sun: {:5.2f}".format(names[n], check_sun))
     new_telescope_position = calibrators[n]
 
@@ -124,8 +213,7 @@ def do_calibration_40b(i, obstime_utc, telescope_position, csvfile, total_wait, 
         next_cal = 'flux'
 
     return i, after_cal, new_telescope_position, total_wait, next_cal
-
-
+    
 def do_target_observation(i, obstime_utc, telescope_position, csvfile, total_wait): #, closest_field):
     # Get objects that are close to current observing horizon:
     current_lst = Time(obstime_utc).sidereal_time('apparent', westerbork().lon)
@@ -144,7 +232,8 @@ def do_target_observation(i, obstime_utc, telescope_position, csvfile, total_wai
     targ_wait = 0.     # minutes
     ##### EDITABLE: Will control the maximum wait time for a target before it gives up and looks for a calibrator #####
     # wait_limit = 5.0  # hours
-    wait_limit = 10.0  # hours
+    #wait_limit = 10.0  # hours
+    wait_limit = 23.0  # hours
 
     new_obstime_utc = obstime_utc
     # First check what is *already* up.  If nothing, then wait for something to rise.
@@ -262,11 +351,11 @@ dowait = 2
 # labels: l=lofar; m=medium-deep; s=shallow; t=timing; g=Milky Way +/-5 in galactic latitude
 #         h=NCP that will be covered with hexagonal compound beam arrangement
 fields = Table(ascii.read(args.filename, format='fixed_width'))
-apertif_fields = fields[((fields['label'] == 'm') | (fields['label'] == 'o')) & (fields['ra']>11.*15) & (fields['ra']<18.0*15)]
+apertif_fields = fields[((fields['label'] == 'm') | (fields['label'] == 'o')) ]#& (fields['ra']>11.*15) & (fields['ra']<18.0*15)]
 weights = np.zeros(len(apertif_fields))
 ##### EDITABLE: Use different labels to control how areas of the Medium-deep are built up in H-ATLAS #####
-weights[apertif_fields['label'] == 'm'] = 4
-weights[apertif_fields['label'] == 'o'] = 1
+weights[apertif_fields['label'] == 'm'] = 1
+weights[apertif_fields['label'] == 'o'] = 0
 weights[apertif_fields['label'] == 'l'] = 0
 
 # Add "weights" column to table.
@@ -307,14 +396,14 @@ except IOError:
     scheduled_coords = []
 
 # Add back fields that were deem failed in order to schedule again:
-try:
-    failed = Table.read('./ancillary_data/failed_obs.csv')
-    for fail in failed:
-        if fail['name'] in apertif_fields['name']:
-            i = np.where(apertif_fields['name'] == fail['name'])
-            apertif_fields['weights'][i] += 1
-except IOError:
-    print("No list of failed observations exists. Continuing")
+# try:
+#     failed = Table.read('./ancillary_data/failed_obs.csv')
+#     for fail in failed:
+#         if fail['name'] in apertif_fields['name']:
+#             i = np.where(apertif_fields['name'] == fail['name'])
+#             apertif_fields['weights'][i] += 1
+# except IOError:
+#     print("No list of failed observations exists. Continuing")
 
 # Try to repeat M101 once at users request by appropriately modifying the weights after they are read in from the pointing file.
 if args.repeat_m101:
@@ -477,41 +566,41 @@ sun_obs = get_sun(obs_arr)
 moon_obs = get_moon(obs_arr)
 
 # Create and save a figure of all pointings selected for this survey, and which have been observed.
-plt.figure(figsize=[8, 8])
-m = Basemap(projection='nplaea', boundinglat=20, lon_0=310, resolution='l', celestial=True)
-m.drawparallels(np.arange(30, 90, 15), labels=[False, False, False, False], color='darkgray')
-m.drawmeridians(np.arange(0, 360, 15), labels=[True, True, False, True], color='darkgray', latmax=90)
-xsun_moll, ysun_moll = m(sun_year.ra.deg, sun_year.dec.deg)
-m.plot(xsun_moll, ysun_moll, 'o-', markersize=2, label='Ecliptic', color='orange')
-xsunobs_moll, ysunobs_moll = m(sun_obs.ra.deg, sun_obs.dec.deg)
-xmoonobs_moll, ymoonobs_moll = m(moon_obs.ra.deg, moon_obs.dec.deg)
-m.plot(xsunobs_moll, ysunobs_moll, 'o', markersize=6, label='Sun', color='orange')
-m.plot(xmoonobs_moll, ymoonobs_moll, 'o', markersize=5, label='Moon', color='gray')
-xpt_ncp, ypt_ncp = m(SkyCoord(np.array(apertif_fields['hmsdms'])).ra.deg,
-                     SkyCoord(np.array(apertif_fields['hmsdms'])).dec.deg)
-m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='SNS', mfc='none', color='0.1')
-# for i, f in enumerate(apertif_fields):
-#     if (f['label'] == 'm') & (f['weights'] != 1) & (f['name'] != "M1403+5324"):
-#         m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
-#     elif (f['label'] == 's') & (f['weights'] == 0):
-#         m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
-m.plot(0, 0, 'o', markersize=7, label='Already in ATDB', mfc='red', color='0')
-for p in scheduled_coords:
-    xpt_ncp, ypt_ncp = m(p.ra.deg, p.dec.deg)
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='orange', color='0')
-if scheduled_coords:
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='Previously scheduled', mfc='orange', color='0')
-for o in observed_pointings:
-    xpt_ncp, ypt_ncp = m(o.ra.deg, o.dec.deg)
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='blue', color='0')
-m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='To be observed', mfc='blue', color='0')
-for f in flux_cal:
-    xcal_ncp, ycal_ncp = m(f.ra.deg, f.dec.deg)
-    m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
-m.plot(xcal_ncp, ycal_ncp, 'o', label='Calibrators', markersize=6, color='green')
-for p in pol_cal:
-    xcal_ncp, ycal_ncp = m(p.ra.deg, p.dec.deg)
-    m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
-plt.legend(loc=1)
-plt.title("Imaging survey fields {}".format(args.starttime_utc))
-plt.savefig(filename,bbox_inches='tight')
+# plt.figure(figsize=[8, 8])
+# m = Basemap(projection='nplaea', boundinglat=20, lon_0=310, resolution='l', celestial=True)
+# m.drawparallels(np.arange(30, 90, 15), labels=[False, False, False, False], color='darkgray')
+# m.drawmeridians(np.arange(0, 360, 15), labels=[True, True, False, True], color='darkgray', latmax=90)
+# xsun_moll, ysun_moll = m(sun_year.ra.deg, sun_year.dec.deg)
+# m.plot(xsun_moll, ysun_moll, 'o-', markersize=2, label='Ecliptic', color='orange')
+# xsunobs_moll, ysunobs_moll = m(sun_obs.ra.deg, sun_obs.dec.deg)
+# xmoonobs_moll, ymoonobs_moll = m(moon_obs.ra.deg, moon_obs.dec.deg)
+# m.plot(xsunobs_moll, ysunobs_moll, 'o', markersize=6, label='Sun', color='orange')
+# m.plot(xmoonobs_moll, ymoonobs_moll, 'o', markersize=5, label='Moon', color='gray')
+# xpt_ncp, ypt_ncp = m(SkyCoord(np.array(apertif_fields['hmsdms'])).ra.deg,
+#                      SkyCoord(np.array(apertif_fields['hmsdms'])).dec.deg)
+# m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='SNS', mfc='none', color='0.1')
+# # for i, f in enumerate(apertif_fields):
+# #     if (f['label'] == 'm') & (f['weights'] != 1) & (f['name'] != "M1403+5324"):
+# #         m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
+# #     elif (f['label'] == 's') & (f['weights'] == 0):
+# #         m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
+# m.plot(0, 0, 'o', markersize=7, label='Already in ATDB', mfc='red', color='0')
+# for p in scheduled_coords:
+#     xpt_ncp, ypt_ncp = m(p.ra.deg, p.dec.deg)
+#     m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='orange', color='0')
+# if scheduled_coords:
+#     m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='Previously scheduled', mfc='orange', color='0')
+# for o in observed_pointings:
+#     xpt_ncp, ypt_ncp = m(o.ra.deg, o.dec.deg)
+#     m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='blue', color='0')
+# m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='To be observed', mfc='blue', color='0')
+# for f in flux_cal:
+#     xcal_ncp, ycal_ncp = m(f.ra.deg, f.dec.deg)
+#     m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
+# m.plot(xcal_ncp, ycal_ncp, 'o', label='Calibrators', markersize=6, color='green')
+# for p in pol_cal:
+#     xcal_ncp, ycal_ncp = m(p.ra.deg, p.dec.deg)
+#     m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
+# plt.legend(loc=1)
+# plt.title("Imaging survey fields {}".format(args.starttime_utc))
+# plt.savefig(filename,bbox_inches='tight')

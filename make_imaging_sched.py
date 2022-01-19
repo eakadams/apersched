@@ -15,10 +15,10 @@ from astropy.table import Table
 from astropy.time import Time
 from astropy import units as u
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 import numpy as np
 
-import atdbquery
+#import atdbquery
 from modules.calc_slewtime import calc_slewtime  # Wants [ra,dec] start/end positions in radians; outputs seconds.
 from modules.calibrators import *
 from modules.functions import *
@@ -323,13 +323,14 @@ dowait = 2
 # labels: l=lofar; m=medium-deep; s=shallow; t=timing; g=Milky Way +/-5 in galactic latitude
 #         h=NCP that will be covered with hexagonal compound beam arrangement
 fields = Table(ascii.read(args.filename, format='fixed_width'))
-apertif_fields = fields[(fields['label'] == 'm') | (fields['label'] == 's') | (fields['label'] == 'l') | (fields['label'] == 'o')]
+apertif_fields = fields[(fields['label'] == 'm') | (fields['label'] == 's') | (fields['label'] == 'l') | (fields['label'] == 'o') | (fields['label'] == 'r')]
 weights = np.zeros(len(apertif_fields))
 weights[apertif_fields['label'] == 's'] = 1
-weights[apertif_fields['label'] == 'm'] = 1
+weights[apertif_fields['label'] == 'm'] = 0
 ##### EDITABLE: Use different labels to control how areas of the Medium-deep are built up in diff parts of the sky #####
 weights[apertif_fields['label'] == 'l'] = 2
 weights[apertif_fields['label'] == 'o'] = 1
+weights[apertif_fields['label'] == 'r'] = 10
 
 # Add "weights" column to table.
 apertif_fields['weights'] = weights
@@ -388,16 +389,16 @@ except IOError:
     scheduled_coords = []
 
 # Add back fields that were deem failed in order to schedule again:
-try:
-    failed = Table.read('./ancillary_data/failed_obs.csv')
-    for fail in failed:
-        if fail['name'] in apertif_fields['name']:
-            i = np.where(apertif_fields['name'] == fail['name'])
-            apertif_fields['weights'][i] += 1
-    #         print(fail['name'],apertif_fields['weights'][i])
-    # print(apertif_fields[apertif_fields['weights']>0])
-except IOError:
-    print("No list of failed observations exists. Continuing")
+# try:
+#     failed = Table.read('./ancillary_data/failed_obs.csv')
+#     for fail in failed:
+#         if fail['name'] in apertif_fields['name']:
+#             i = np.where(apertif_fields['name'] == fail['name'])
+#             apertif_fields['weights'][i] += 1
+#     #         print(fail['name'],apertif_fields['weights'][i])
+#     # print(apertif_fields[apertif_fields['weights']>0])
+# except IOError:
+#     print("No list of failed observations exists. Continuing")
 
 # # Try to repeat M101 once at users request by appropriately modifying the weights after they are read in from the pointing file.
 # if args.repeat_m101:
@@ -576,41 +577,41 @@ sun_obs = get_sun(obs_arr)
 moon_obs = get_moon(obs_arr)
 
 # Create and save a figure of all pointings selected for this survey, and which have been observed.
-plt.figure(figsize=[8, 8])
-m = Basemap(projection='nplaea', boundinglat=20, lon_0=310, resolution='l', celestial=True)
-m.drawparallels(np.arange(30, 90, 15), labels=[False, False, False, False], color='darkgray')
-m.drawmeridians(np.arange(0, 360, 15), labels=[True, True, False, True], color='darkgray', latmax=90)
-xsun_moll, ysun_moll = m(sun_year.ra.deg, sun_year.dec.deg)
-m.plot(xsun_moll, ysun_moll, 'o-', markersize=2, label='Ecliptic', color='orange')
-xsunobs_moll, ysunobs_moll = m(sun_obs.ra.deg, sun_obs.dec.deg)
-xmoonobs_moll, ymoonobs_moll = m(moon_obs.ra.deg, moon_obs.dec.deg)
-m.plot(xsunobs_moll, ysunobs_moll, 'o', markersize=6, label='Sun', color='orange')
-m.plot(xmoonobs_moll, ymoonobs_moll, 'o', markersize=5, label='Moon', color='gray')
-xpt_ncp, ypt_ncp = m(SkyCoord(np.array(apertif_fields['hmsdms'])).ra.deg,
-                     SkyCoord(np.array(apertif_fields['hmsdms'])).dec.deg)
-m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='SNS', mfc='none', color='0.1')
-for i, f in enumerate(apertif_fields):
-    if (f['label'] == 'm') & (f['weights'] != 1) & (f['name'] != "M1403+5324"):
-        m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
-    elif (f['label'] == 's') & (f['weights'] == 0):
-        m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
-m.plot(0, 0, 'o', markersize=7, label='Already in ATDB', mfc='red', color='0')
-for p in scheduled_coords:
-    xpt_ncp, ypt_ncp = m(p.ra.deg, p.dec.deg)
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='orange', color='0')
-if scheduled_coords:
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='Previously scheduled', mfc='orange', color='0')
-for o in observed_pointings:
-    xpt_ncp, ypt_ncp = m(o.ra.deg, o.dec.deg)
-    m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='blue', color='0')
-m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='To be observed', mfc='blue', color='0')
-for f in flux_cal:
-    xcal_ncp, ycal_ncp = m(f.ra.deg, f.dec.deg)
-    m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
-m.plot(xcal_ncp, ycal_ncp, 'o', label='Calibrators', markersize=6, color='green')
-for p in pol_cal:
-    xcal_ncp, ycal_ncp = m(p.ra.deg, p.dec.deg)
-    m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
-plt.legend(loc=1)
-plt.title("Imaging survey fields {}".format(args.starttime_utc))
-plt.savefig(filename,bbox_inches='tight')
+# plt.figure(figsize=[8, 8])
+# m = Basemap(projection='nplaea', boundinglat=20, lon_0=310, resolution='l', celestial=True)
+# m.drawparallels(np.arange(30, 90, 15), labels=[False, False, False, False], color='darkgray')
+# m.drawmeridians(np.arange(0, 360, 15), labels=[True, True, False, True], color='darkgray', latmax=90)
+# xsun_moll, ysun_moll = m(sun_year.ra.deg, sun_year.dec.deg)
+# m.plot(xsun_moll, ysun_moll, 'o-', markersize=2, label='Ecliptic', color='orange')
+# xsunobs_moll, ysunobs_moll = m(sun_obs.ra.deg, sun_obs.dec.deg)
+# xmoonobs_moll, ymoonobs_moll = m(moon_obs.ra.deg, moon_obs.dec.deg)
+# m.plot(xsunobs_moll, ysunobs_moll, 'o', markersize=6, label='Sun', color='orange')
+# m.plot(xmoonobs_moll, ymoonobs_moll, 'o', markersize=5, label='Moon', color='gray')
+# xpt_ncp, ypt_ncp = m(SkyCoord(np.array(apertif_fields['hmsdms'])).ra.deg,
+# 					 SkyCoord(np.array(apertif_fields['hmsdms'])).dec.deg)
+# m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='SNS', mfc='none', color='0.1')
+# for i, f in enumerate(apertif_fields):
+# 	if (f['label'] == 'm') & (f['weights'] != 1) & (f['name'] != "M1403+5324"):
+# 		m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
+# 	elif (f['label'] == 's') & (f['weights'] == 0):
+# 		m.plot(xpt_ncp[i], ypt_ncp[i], 'o', markersize=7, mfc='red', color='0')
+# m.plot(0, 0, 'o', markersize=7, label='Already in ATDB', mfc='red', color='0')
+# for p in scheduled_coords:
+# 	xpt_ncp, ypt_ncp = m(p.ra.deg, p.dec.deg)
+# 	m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='orange', color='0')
+# if scheduled_coords:
+# 	m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='Previously scheduled', mfc='orange', color='0')
+# for o in observed_pointings:
+# 	xpt_ncp, ypt_ncp = m(o.ra.deg, o.dec.deg)
+# 	m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, mfc='blue', color='0')
+# m.plot(xpt_ncp, ypt_ncp, 'o', markersize=7, label='To be observed', mfc='blue', color='0')
+# for f in flux_cal:
+# 	xcal_ncp, ycal_ncp = m(f.ra.deg, f.dec.deg)
+# 	m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
+# m.plot(xcal_ncp, ycal_ncp, 'o', label='Calibrators', markersize=6, color='green')
+# for p in pol_cal:
+# 	xcal_ncp, ycal_ncp = m(p.ra.deg, p.dec.deg)
+# 	m.plot(xcal_ncp, ycal_ncp, 'o', markersize=6, color='green')
+# plt.legend(loc=1)
+# plt.title("Imaging survey fields {}".format(args.starttime_utc))
+# plt.savefig(filename,bbox_inches='tight')
