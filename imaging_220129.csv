@@ -1,0 +1,10 @@
+source,ra,ha,dec,date1,time1,date2,time2,int,type,weight,beam,switch_type,freqmode,centfreq,template
+imaging_start,05:42:36.1379,,+49:51:07.2337,2022-01-29,15:39:00,2022-01-29,15:40:00,10,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+3C147,05:42:36.1379,,+49:51:07.2337,2022-01-29,15:42:00,2022-01-29,19:00:00,10,S*,compound,0,system,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+S1042+5324,10:42:53,,+53:24:05,2022-01-29,19:44:00,2022-01-30,07:14:00,30,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+S2319+3130,23:19:38,,+31:30:45,2022-01-30,08:20:00,2022-01-30,19:50:00,30,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+3C138,05:21:09.8859,,+16:38:22.0518,2022-01-30,19:57:07,2022-01-30,23:15:07,10,S*,compound,0,system,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+S1536+5058,15:36:18,,+50:58:09,2022-01-31,00:33:07,2022-01-31,12:03:07,30,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+3C147,05:42:36.1379,,+49:51:07.2337,2022-01-31,15:33:07,2022-01-31,18:51:07,10,S*,compound,0,system,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+S1101+5324,11:01:07,,+53:24:05,2022-01-31,19:55:07,2022-02-01,07:25:07,30,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template
+imaging_end,11:01:07,,+53:24:05,2022-02-01,07:27:07,2022-02-01,07:28:07,10,T,compound,0,-,300,1370,/opt/apertif/share/parsets/parset_start_observation_atdb_SubbandPhaseCorrection.template

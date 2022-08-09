@@ -24,6 +24,8 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+import matplotlib
+matplotlib.use("TkAgg")
 
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['xtick.direction']='in'

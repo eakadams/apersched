@@ -326,7 +326,7 @@ fields = Table(ascii.read(args.filename, format='fixed_width'))
 apertif_fields = fields[(fields['label'] == 'm') | (fields['label'] == 's') | (fields['label'] == 'l') | (fields['label'] == 'o') | (fields['label'] == 'r')]
 weights = np.zeros(len(apertif_fields))
 weights[apertif_fields['label'] == 's'] = 1
-weights[apertif_fields['label'] == 'm'] = 0
+weights[apertif_fields['label'] == 'm'] = 1 #0, update becuase setting every to "m"
 ##### EDITABLE: Use different labels to control how areas of the Medium-deep are built up in diff parts of the sky #####
 weights[apertif_fields['label'] == 'l'] = 2
 weights[apertif_fields['label'] == 'o'] = 1
